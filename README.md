@@ -2,7 +2,8 @@
 
 Backend AI untuk sistem monitoring pasien stroke berbasis **deteksi bahasa isyarat (sign language)**. Project ini telah dikembangkan dengan struktur modular menggunakan **FastAPI**, **MediaPipe Tasks API**, dan **TensorFlow Lite**.
 
----
+HALOOOOO
+
 
 ## 🗂️ Struktur Project
 
