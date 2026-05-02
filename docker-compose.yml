@@ -1,0 +1,17 @@
+services:
+  strokemonitor-backend:
+    build: .
+    container_name: strokemonitor-ai
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./.env:/app/.env
+      - ./config:/app/config
+      - ./models:/app/models
+    # Catatan untuk Windows: Akses kamera via /dev/video0 tidak didukung langsung.
+    # Aktifkan baris di bawah hanya jika Anda menjalankan di Linux/Raspberry Pi.
+    # devices:
+    #   - "/dev/video0:/dev/video0"
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1

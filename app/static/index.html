@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StrokeMonitor Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --success: #10b981;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .dashboard {
+            width: 90%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 2rem;
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        #annotated-view {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .stats-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 1.5rem;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        .btn-start {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1rem;
+            transition: all 0.3s;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(0,0,0,0.6);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="video-card" style="position: relative;">
+            <div class="overlay">
+                <div class="dot"></div>
+                AI PROCESSING
+            </div>
+            <div class="video-container">
+                <video id="video" autoplay playsinline style="display:none;"></video>
+                <img id="annotated-view" src="" alt="Klik Start untuk Memulai">
+            </div>
+            <canvas id="canvas-hidden" style="display:none;"></canvas>
+            <button class="btn-start" id="start-btn">AKTIFKAN MONITORING</button>
+        </div>
+
+        <div class="stats-card">
+            <div class="stat-item">
+                <div class="stat-label">GESTURE TERDETEKSI</div>
+                <div class="stat-value" id="gesture-label">Waiting...</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">CONFIDENCE</div>
+                <div class="stat-value" id="confidence-label">0%</div>
+            </div>
+            <div id="status-msg" style="color: #94a3b8; font-size: 0.9rem; text-align: center;">
+                Garis tangan akan digambar langsung oleh server.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvasHidden = document.getElementById('canvas-hidden');
+        const annotatedView = document.getElementById('annotated-view');
+        const startBtn = document.getElementById('start-btn');
+        const gestureLabel = document.getElementById('gesture-label');
+        const confidenceLabel = document.getElementById('confidence-label');
+        
+        const ctxHidden = canvasHidden.getContext('2d');
+        let isRunning = false;
+
+        startBtn.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+                video.srcObject = stream;
+                startBtn.style.display = 'none';
+                isRunning = true;
+                
+                video.onloadedmetadata = () => {
+                    canvasHidden.width = 320;
+                    canvasHidden.height = 240;
+                };
+
+                processLoop();
+            } catch (err) {
+                alert("Gagal mengakses kamera: " + err.message);
+            }
+        });
+
+        async function processLoop() {
+            if (!isRunning) return;
+
+            // Optimasi: Gunakan ukuran lebih kecil (320x240) untuk pengiriman cepat
+            // MediaPipe tidak butuh gambar besar untuk deteksi tangan
+            const targetWidth = 320;
+            const targetHeight = 240;
+            
+            // Resize saat menggambar ke canvas tersembunyi
+            ctxHidden.drawImage(video, 0, 0, targetWidth, targetHeight);
+            const dataUrl = canvasHidden.toDataURL('image/jpeg', 0.4); // Kualitas 0.4 sudah cukup
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: dataUrl })
+                });
+
+                const result = await response.json();
+                
+                // Update Label
+                gestureLabel.innerText = result.label;
+                confidenceLabel.innerText = (result.confidence * 100).toFixed(1) + "%";
+                
+                // Tampilkan gambar bergaris dari server
+                if (result.annotated_image) {
+                    annotatedView.src = 'data:image/jpeg;base64,' + result.annotated_image;
+                }
+
+            } catch (err) {
+                console.error("Error prediction:", err);
+            }
+
+            // Loop lebih cepat (30ms = ~30fps)
+            setTimeout(processLoop, 30);
+        }
+    </script>
+</body>
+</html>

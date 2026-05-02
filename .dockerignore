@@ -1,0 +1,17 @@
+venv/
+__pycache__/
+*.pyc
+.git/
+.env
+archive/
+src/
+config/firebase_credentials.json
+.vscode/
+.idea/
+*.npy
+*.tflite
+*.task
+# Kita copy models secara manual di Dockerfile jika perlu, 
+# tapi di docker-compose kita sudah pakai volumes.
+# Namun untuk build image yang self-contained, sebaiknya di-include.
+# Jadi saya biarkan models/ di-include.
