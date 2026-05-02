@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     FastAPI siap melayani request setelah semua komponen aktif.
     """
     print("=" * 50)
-    print("  StrokeMonitor AI Backend — Starting Up")
+    print("  StrokeMonitor AI Backend - Starting Up")
     print("=" * 50)
 
     # 1. Muat model TFLite dan label
@@ -36,9 +36,9 @@ async def lifespan(app: FastAPI):
     start_firebase_worker()
 
     print("=" * 50)
-    print(f"  ✅ Server siap di http://{HOST}:{PORT}")
-    print(f"  📺 Video feed: http://{HOST}:{PORT}/video_feed")
-    print(f"  📋 API docs : http://{HOST}:{PORT}/docs")
+    print(f"  [OK] Server siap di http://{HOST}:{PORT}")
+    print(f"  [>>] Video feed: http://{HOST}:{PORT}/video_feed")
+    print(f"  [i]  API docs : http://{HOST}:{PORT}/docs")
     print("=" * 50)
 
     yield  # Aplikasi berjalan di sini

@@ -137,10 +137,8 @@
                 AI PROCESSING
             </div>
             <div class="video-container">
-                <video id="video" autoplay playsinline style="display:none;"></video>
-                <img id="annotated-view" src="" alt="Klik Start untuk Memulai">
+                <img id="annotated-view" src="" alt="Klik Start untuk Memulai" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
-            <canvas id="canvas-hidden" style="display:none;"></canvas>
             <button class="btn-start" id="start-btn">AKTIFKAN MONITORING</button>
         </div>
 
@@ -160,70 +158,41 @@
     </div>
 
     <script>
-        const video = document.getElementById('video');
-        const canvasHidden = document.getElementById('canvas-hidden');
         const annotatedView = document.getElementById('annotated-view');
         const startBtn = document.getElementById('start-btn');
         const gestureLabel = document.getElementById('gesture-label');
         const confidenceLabel = document.getElementById('confidence-label');
         
-        const ctxHidden = canvasHidden.getContext('2d');
         let isRunning = false;
 
-        startBtn.addEventListener('click', async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
-                video.srcObject = stream;
-                startBtn.style.display = 'none';
-                isRunning = true;
-                
-                video.onloadedmetadata = () => {
-                    canvasHidden.width = 320;
-                    canvasHidden.height = 240;
-                };
-
-                processLoop();
-            } catch (err) {
-                alert("Gagal mengakses kamera: " + err.message);
-            }
+        startBtn.addEventListener('click', () => {
+            startBtn.style.display = 'none';
+            isRunning = true;
+            
+            // Set source ke endpoint streaming video
+            annotatedView.src = '/video_feed';
+            
+            // Mulai polling status AI
+            pollStatus();
         });
 
-        async function processLoop() {
+        async function pollStatus() {
             if (!isRunning) return;
 
-            // Optimasi: Gunakan ukuran lebih kecil (320x240) untuk pengiriman cepat
-            // MediaPipe tidak butuh gambar besar untuk deteksi tangan
-            const targetWidth = 320;
-            const targetHeight = 240;
-            
-            // Resize saat menggambar ke canvas tersembunyi
-            ctxHidden.drawImage(video, 0, 0, targetWidth, targetHeight);
-            const dataUrl = canvasHidden.toDataURL('image/jpeg', 0.4); // Kualitas 0.4 sudah cukup
-
             try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: dataUrl })
-                });
-
+                const response = await fetch('/status');
                 const result = await response.json();
                 
                 // Update Label
-                gestureLabel.innerText = result.label;
-                confidenceLabel.innerText = (result.confidence * 100).toFixed(1) + "%";
-                
-                // Tampilkan gambar bergaris dari server
-                if (result.annotated_image) {
-                    annotatedView.src = 'data:image/jpeg;base64,' + result.annotated_image;
-                }
+                gestureLabel.innerText = result.current_label || "Waiting...";
+                confidenceLabel.innerText = ((result.confidence || 0) * 100).toFixed(1) + "%";
 
             } catch (err) {
-                console.error("Error prediction:", err);
+                console.error("Error fetching status:", err);
             }
 
-            // Loop lebih cepat (30ms = ~30fps)
-            setTimeout(processLoop, 30);
+            // Polling setiap 200ms agar UI tetap responsif dengan status
+            setTimeout(pollStatus, 200);
         }
     </script>
 </body>
