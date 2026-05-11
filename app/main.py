@@ -9,9 +9,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 
 from app.core.config import HOST, PORT
-from app.core.firebase import start_firebase_worker
+from app.core.firebase import start_firebase_worker, stop_firebase_worker
 from app.services.inference import load_model_and_labels
-from app.services.gesture import init_gesture_service
+from app.services.gesture import init_gesture_service, shutdown_gesture_service
 from app.api.routes import status, video, sync, predict
 
 
@@ -43,8 +43,10 @@ async def lifespan(app: FastAPI):
 
     yield  # Aplikasi berjalan di sini
 
-    # Shutdown (jika diperlukan cleanup)
+    # Shutdown
     print("🛑 StrokeMonitor Backend shutting down...")
+    stop_firebase_worker()   # unsubscribe listener + stop worker thread
+    shutdown_gesture_service()
 
 
 # ─── Aplikasi FastAPI ──────────────────────────────────────────────────────────

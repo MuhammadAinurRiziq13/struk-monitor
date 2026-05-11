@@ -23,10 +23,22 @@ FIREBASE_CRED_PATH: str = os.getenv("FIREBASE_CRED_PATH", "config/firebase_crede
 HOST: str = os.getenv("HOST", "0.0.0.0")
 PORT: int = int(os.getenv("PORT", "8000"))
 
-# --- Default Gesture Mapping (bisa di-override dari Firestore) ---
-DEFAULT_GESTURE_MAPPING: dict = {
-    "A": "Makan",
-    "B": "Minum",
-    "C": "Toilet",
-    "D": "Tidur",
+# --- Default Gesture Mapping (Fallback) ---
+# Format asli (dari Firebase): Kategori -> List Gestur
+DEFAULT_GESTURE_CONFIG: dict = {
+    "Makan": ["A"],
+    "Minum": ["B"],
+    "Toilet": ["C"],
+    "Tidur": ["D"],
 }
+
+# Fungsi helper untuk membalik mapping agar mudah digunakan oleh AI (Gestur -> Kategori)
+def generate_flat_mapping(config: dict) -> dict:
+    flat = {}
+    for kebutuhan, daftar_gestur in config.items():
+        for gestur in daftar_gestur:
+            flat[gestur] = kebutuhan
+    return flat
+
+# Mapping yang digunakan in-memory oleh AI
+DEFAULT_GESTURE_MAPPING: dict = generate_flat_mapping(DEFAULT_GESTURE_CONFIG)

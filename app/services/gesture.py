@@ -188,6 +188,7 @@ def _inference_worker():
                 'action'   : 'push_history',
                 'kebutuhan': gesture_mapping[final_label],
                 'gestur'   : final_label,
+                'confidence': conf,
             })
 
         global_status["current_label"] = str(final_label)
@@ -239,8 +240,18 @@ def init_gesture_service(model, input_details, output_details, labels):
     print("[AI] Semua worker thread aktif.")
 
 
+def shutdown_gesture_service():
+    """Membersihkan resource saat aplikasi dimatikan."""
+    global _vs
+    if _vs is not None:
+        print("[AI] Menghentikan kamera...")
+        _vs.stop()
+
+
+import asyncio
+
 # ── Generator untuk MJPEG stream ──────────────────────────────────────────────
-def generate_frames():
+async def generate_frames():
     """
     Generator MJPEG: hanya encode frame yang sudah di-annotate oleh mediapipe-worker.
     Zero blocking call → stream selalu responsif.
@@ -249,9 +260,10 @@ def generate_frames():
 
     while True:
         try:
-            frame = _annotated_queue.get(timeout=0.5)
+            frame = _annotated_queue.get_nowait()
         except queue.Empty:
-            # Jika tidak ada frame, kirim placeholder minimal (tidak hang)
+            # Jika tidak ada frame, tidur sebentar (non-blocking)
+            await asyncio.sleep(0.03)
             continue
 
         ret, jpeg = cv2.imencode(".jpg", frame, encode_params)
@@ -260,6 +272,8 @@ def generate_frames():
                 b"--frame\r\n"
                 b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n\r\n"
             )
+        # Beri kesempatan event loop memproses sinyal shutdown
+        await asyncio.sleep(0.001)
 
 
 # ── Fungsi helper untuk endpoint /predict (jika masih digunakan) ──────────────

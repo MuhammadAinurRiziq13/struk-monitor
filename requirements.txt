@@ -1,6 +1,6 @@
 # Core AI & Vision
 tensorflow==2.16.1
-mediapipe==0.10.9          # Versi terakhir dengan mp.solutions.hands API
+mediapipe>=0.10.13          # Mendukung Python 3.12+
 protobuf>=3.20.0,<4.0.0   # Kompatibel dengan mediapipe 0.10.9
 opencv-python>=4.8.0
 numpy>=1.23.0
